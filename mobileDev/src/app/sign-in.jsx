@@ -25,6 +25,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import IdentifierToggle from "../../components/IdentifierToggle";
 import { useAuth } from "../../context/AuthContext";
 
 const COLORS = {
@@ -55,7 +56,9 @@ export default function SignInScreen() {
     PlayfairDisplay_700Bold,
   });
 
+  const [method, setMethod] = useState("email"); // "email" | "phone"
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
@@ -63,8 +66,9 @@ export default function SignInScreen() {
   if (!fontsLoaded) return null;
 
   const handleSignIn = () => {
-    // TODO: when the LASUTH API is ready, validate the email and password
-    // here and only call signIn() when the credentials are valid.
+    // TODO: when the LASUTH API is ready, send either the email or the phone
+    // number (depending on `method`) with the password, and only call
+    // signIn() when the credentials are valid.
     signIn();
     router.replace("/(tabs)");
   };
@@ -123,7 +127,6 @@ export default function SignInScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* LASUTH branding */}
           <View style={styles.brandRow}>
             <Image
               source={LASUTH_LOGO}
@@ -140,7 +143,6 @@ export default function SignInScreen() {
             </View>
           </View>
 
-          {/* Hospital image */}
           <View style={styles.heroImageWrapper}>
             <View style={styles.imageAccent} />
             <Image
@@ -150,7 +152,6 @@ export default function SignInScreen() {
             />
           </View>
 
-          {/* Welcome heading */}
           <View style={styles.welcomeSection}>
             <Text style={styles.welcomeTitle}>Welcome Back,</Text>
             <Text style={styles.welcomeHighlight}>Good to see you!</Text>
@@ -160,25 +161,43 @@ export default function SignInScreen() {
             </Text>
           </View>
 
-          {/* Email field */}
-          <View style={styles.inputContainer}>
-            <Feather name="mail" size={17} color={COLORS.primary} />
-            <TextInput
-              style={styles.input}
-              placeholder="Email Address"
-              placeholderTextColor="#8A9BAF"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              autoComplete="email"
-              textContentType="emailAddress"
-              returnKeyType="next"
-            />
-          </View>
+          <IdentifierToggle value={method} onChange={setMethod} />
 
-          {/* Password field */}
+          {method === "email" ? (
+            <View style={styles.inputContainer}>
+              <Feather name="mail" size={17} color={COLORS.primary} />
+              <TextInput
+                style={styles.input}
+                placeholder="Email Address"
+                placeholderTextColor="#8A9BAF"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="email"
+                textContentType="emailAddress"
+                returnKeyType="next"
+              />
+            </View>
+          ) : (
+            <View style={styles.inputContainer}>
+              <Feather name="phone" size={17} color={COLORS.primary} />
+              <TextInput
+                style={styles.input}
+                placeholder="Phone Number"
+                placeholderTextColor="#8A9BAF"
+                value={phone}
+                onChangeText={setPhone}
+                keyboardType="phone-pad"
+                maxLength={16}
+                autoComplete="tel"
+                textContentType="telephoneNumber"
+                returnKeyType="next"
+              />
+            </View>
+          )}
+
           <View style={styles.inputContainer}>
             <Feather name="lock" size={17} color={COLORS.primary} />
             <TextInput
@@ -209,7 +228,6 @@ export default function SignInScreen() {
             </Pressable>
           </View>
 
-          {/* Remember me and forgot password */}
           <View style={styles.optionsRow}>
             <Pressable
               style={styles.rememberOption}
@@ -233,7 +251,6 @@ export default function SignInScreen() {
             </Pressable>
           </View>
 
-          {/* Sign in button */}
           <Pressable
             style={({ pressed }) => [
               styles.signInButton,
@@ -245,14 +262,12 @@ export default function SignInScreen() {
             <Feather name="arrow-right" size={18} color={COLORS.white} />
           </Pressable>
 
-          {/* Divider */}
           <View style={styles.dividerRow}>
             <View style={styles.dividerLine} />
             <Text style={styles.orText}>OR</Text>
             <View style={styles.dividerLine} />
           </View>
 
-          {/* Biometric sign in */}
           <Pressable
             style={({ pressed }) => [
               styles.biometricButton,
@@ -268,7 +283,6 @@ export default function SignInScreen() {
             <Text style={styles.biometricText}>Use Biometric Login</Text>
           </Pressable>
 
-          {/* Create account */}
           <View style={styles.createAccountRow}>
             <Text style={styles.createAccountText}>Don’t have an account?</Text>
 

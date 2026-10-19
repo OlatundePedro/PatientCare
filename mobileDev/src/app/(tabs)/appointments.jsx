@@ -1,8 +1,17 @@
+import { PlayfairDisplay_700Bold } from "@expo-google-fonts/playfair-display";
+import {
+  WorkSans_400Regular,
+  WorkSans_500Medium,
+  WorkSans_600SemiBold,
+  WorkSans_700Bold,
+} from "@expo-google-fonts/work-sans";
 import Feather from "@expo/vector-icons/Feather";
+import { useFonts } from "expo-font";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
   Alert,
+  Image,
   Pressable,
   ScrollView,
   StatusBar,
@@ -13,648 +22,677 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const COLORS = {
-  green: "#08783E",
-  greenDark: "#065C30",
-  greenSoft: "#E7F4EC",
-  white: "#FFFFFF",
+  primary: "#0B6B43",
+  primaryDark: "#075536",
+  primarySoft: "#E9F6EF",
+  navy: "#0F1F33",
   text: "#1F2937",
-  muted: "#6B7280",
-  background: "#F3F4F6",
-  border: "#E5E7EB",
-  gold: "#D4A017",
-  goldSoft: "#FBF4DF",
+  muted: "#64748B",
+  white: "#FFFFFF",
+  background: "#F8FAF8",
+  border: "#DCE7E1",
+  error: "#DC2626",
+  gold: "#F59E0B",
 };
 
-const SAMPLE_APPOINTMENTS = [
+const HOSPITAL_IMAGE = require("../../../assets/images/ayinke.png");
+
+const INITIAL_APPOINTMENTS = [
   {
-    id: "APT-001",
+    id: "1",
     clinic: "Medical Outpatient Clinic",
-    doctor: "Doctor to be assigned",
-    date: "Tomorrow",
-    time: "10:30 AM",
+    when: "Tomorrow · 10:30 AM",
     location: "LASUTH, Ikeja",
-    status: "Confirmed",
     type: "Physical consultation",
+    status: "Confirmed",
+    isPast: false,
   },
 ];
 
-function SectionHeading({ title, action, onAction }) {
-  return (
-    <View style={styles.sectionHeading}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+// ---------- Small pieces ----------
 
-      {action ? (
-        <Pressable onPress={onAction} hitSlop={8}>
-          <Text style={styles.sectionAction}>{action}</Text>
-        </Pressable>
-      ) : null}
+function StatusBadge({ status }) {
+  return (
+    <View style={styles.statusBadge}>
+      <Feather name="check-circle" size={13} color={COLORS.primary} />
+      <Text style={styles.statusText}>{status}</Text>
     </View>
   );
 }
 
-function AppointmentCard({ appointment, onView, onReschedule, onCancel }) {
+function CountBadge({ count }) {
   return (
-    <View style={styles.appointmentCard}>
-      <View style={styles.cardTop}>
-        <View style={styles.clinicIcon}>
-          <Feather name="plus-square" size={23} color={COLORS.green} />
-        </View>
+    <View style={styles.countBadge}>
+      <Text style={styles.countText}>{count}</Text>
+    </View>
+  );
+}
 
-        <View style={styles.clinicInfo}>
-          <Text style={styles.clinicName}>{appointment.clinic}</Text>
-          <Text style={styles.doctorName}>{appointment.doctor}</Text>
-        </View>
-
-        <Feather name="chevron-right" size={21} color={COLORS.muted} />
+function EmptyState({ icon, title, message }) {
+  return (
+    <View style={styles.emptyCard}>
+      <View style={styles.emptyIcon}>
+        <Feather name={icon} size={26} color={COLORS.primary} />
       </View>
+      <Text style={styles.emptyTitle}>{title}</Text>
+      <Text style={styles.emptyMessage}>{message}</Text>
+    </View>
+  );
+}
 
-      <View style={styles.statusRow}>
-        <View style={styles.statusBadge}>
-          <Feather name="check-circle" size={13} color={COLORS.green} />
-          <Text style={styles.statusText}>{appointment.status}</Text>
+function AppointmentCard({ item, onView, onReschedule, onCancel }) {
+  return (
+    <View style={styles.card}>
+      <Pressable style={styles.cardTop} onPress={onView}>
+        <View style={styles.cardIcon}>
+          <Feather name="briefcase" size={22} color={COLORS.primary} />
         </View>
 
-        <View style={styles.typeBadge}>
-          <Text style={styles.typeText}>{appointment.type}</Text>
-        </View>
-      </View>
+        <View style={styles.cardBody}>
+          <View style={styles.cardTitleRow}>
+            <Text style={styles.cardTitle} numberOfLines={1}>
+              {item.clinic}
+            </Text>
+            <StatusBadge status={item.status} />
+          </View>
 
-      <View style={styles.divider} />
+          <View style={styles.metaRow}>
+            <Feather name="calendar" size={14} color={COLORS.muted} />
+            <Text style={styles.metaText}>{item.when}</Text>
+          </View>
 
-      <View style={styles.detailRow}>
-        <View style={styles.detailIcon}>
-          <Feather name="calendar" size={17} color={COLORS.green} />
-        </View>
-        <View style={styles.detailInfo}>
-          <Text style={styles.detailLabel}>Appointment date</Text>
-          <Text style={styles.detailValue}>
-            {appointment.date} · {appointment.time}
-          </Text>
-        </View>
-      </View>
+          <View style={styles.metaRow}>
+            <Feather name="map-pin" size={14} color={COLORS.muted} />
+            <Text style={styles.metaText}>{item.location}</Text>
+          </View>
 
-      <View style={styles.detailRow}>
-        <View style={styles.detailIcon}>
-          <Feather name="map-pin" size={17} color={COLORS.green} />
+          <View style={styles.typeTag}>
+            <Text style={styles.typeTagText}>{item.type}</Text>
+          </View>
         </View>
-        <View style={styles.detailInfo}>
-          <Text style={styles.detailLabel}>Location</Text>
-          <Text style={styles.detailValue}>{appointment.location}</Text>
-        </View>
-      </View>
 
-      <Pressable style={styles.viewButton} onPress={onView}>
-        <Text style={styles.viewButtonText}>View Appointment</Text>
-        <Feather name="arrow-right" size={17} color={COLORS.white} />
+        <Feather name="chevron-right" size={18} color={COLORS.muted} />
       </Pressable>
 
-      <View style={styles.secondaryActions}>
-        <Pressable style={styles.secondaryAction} onPress={onReschedule}>
-          <Feather name="calendar" size={15} color={COLORS.green} />
-          <Text style={styles.secondaryActionText}>Reschedule</Text>
-        </Pressable>
+      {!item.isPast && (
+        <View style={styles.actions}>
+          <Pressable style={styles.actionButton} onPress={onView}>
+            <Feather name="eye" size={18} color={COLORS.primary} />
+            <Text style={styles.actionText}>View</Text>
+          </Pressable>
 
-        <View style={styles.actionDivider} />
+          <View style={styles.actionDivider} />
 
-        <Pressable style={styles.secondaryAction} onPress={onCancel}>
-          <Feather name="x-circle" size={15} color="#B42318" />
-          <Text style={styles.cancelText}>Cancel booking</Text>
-        </Pressable>
-      </View>
+          <Pressable style={styles.actionButton} onPress={onReschedule}>
+            <Feather name="calendar" size={18} color={COLORS.primary} />
+            <Text style={styles.actionText}>Reschedule</Text>
+          </Pressable>
+
+          <View style={styles.actionDivider} />
+
+          <Pressable style={styles.actionButton} onPress={onCancel}>
+            <Feather name="x-circle" size={18} color={COLORS.error} />
+            <Text style={[styles.actionText, { color: COLORS.error }]}>
+              Cancel
+            </Text>
+          </Pressable>
+        </View>
+      )}
     </View>
   );
 }
 
+// ---------- Screen ----------
+
 export default function AppointmentsScreen() {
-  const [activeFilter, setActiveFilter] = useState("Upcoming");
+  const [fontsLoaded] = useFonts({
+    WorkSans_400Regular,
+    WorkSans_500Medium,
+    WorkSans_600SemiBold,
+    WorkSans_700Bold,
+    PlayfairDisplay_700Bold,
+  });
 
-  // Demonstration data only. Replace with appointments from your API.
-  const appointments = SAMPLE_APPOINTMENTS;
+  const [tab, setTab] = useState("upcoming"); // "upcoming" | "past"
+  const [appointments, setAppointments] = useState(INITIAL_APPOINTMENTS);
 
-  const filteredAppointments = activeFilter === "Upcoming" ? appointments : [];
+  if (!fontsLoaded) return null;
 
-  const handleReschedule = () => {
-    Alert.alert(
-      "Reschedule appointment",
-      "Connect this action to your appointment rescheduling flow.",
-    );
-  };
+  const upcoming = appointments.filter((a) => !a.isPast);
+  const past = appointments.filter((a) => a.isPast);
 
-  const handleCancel = () => {
+  const handleCancel = (item) => {
     Alert.alert(
       "Cancel appointment",
-      "Connect this action to your cancellation flow.",
+      `Are you sure you want to cancel your visit to ${item.clinic}?`,
+      [
+        { text: "Keep it", style: "cancel" },
+        {
+          text: "Cancel visit",
+          style: "destructive",
+          onPress: () =>
+            // TODO: call the LASUTH API to cancel this appointment.
+            setAppointments((list) => list.filter((a) => a.id !== item.id)),
+        },
+      ],
     );
   };
+
+  const openDetails = (item) =>
+    router.push({ pathname: "/appointment-details", params: { id: item.id } });
+
+  const reschedule = (item) =>
+    router.push({ pathname: "/book-appointment", params: { id: item.id } });
+
+  const bookAppointment = () => router.push("/book-appointment");
+
+  const list = tab === "upcoming" ? upcoming : past;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
 
       <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.content}
+        style={styles.flex}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
         <View style={styles.header}>
-          <View>
-            <Text style={styles.pageEyebrow}>LASUTH PATIENT SERVICES</Text>
-            <Text style={styles.pageTitle}>Appointments</Text>
-            <Text style={styles.pageSubtitle}>Manage your hospital visits</Text>
+          <Pressable
+            onPress={() => router.back()}
+            hitSlop={10}
+            accessibilityLabel="Go back"
+          >
+            <Feather name="arrow-left" size={24} color={COLORS.navy} />
+          </Pressable>
+
+          <View style={styles.headerText}>
+            <Text style={styles.title}>Appointments</Text>
+            <Text style={styles.subtitle}>Manage your hospital visits</Text>
           </View>
 
           <Pressable
-            style={styles.notificationButton}
+            style={styles.bell}
             onPress={() => router.push("/notifications")}
+            accessibilityLabel="Notifications"
           >
-            <Feather name="bell" size={21} color={COLORS.greenDark} />
-            <View style={styles.notificationDot} />
+            <Feather name="bell" size={20} color={COLORS.navy} />
+            <View style={styles.bellDot} />
+          </Pressable>
+
+          <Pressable
+            style={styles.avatar}
+            onPress={() => router.push("/profile")}
+            accessibilityLabel="Profile"
+          >
+            <Feather name="user" size={22} color={COLORS.primary} />
           </Pressable>
         </View>
 
         {/* Booking banner */}
-        <View style={styles.bookingBanner}>
-          <View style={styles.bannerIcon}>
-            <Feather name="calendar" size={25} color={COLORS.green} />
+        <View style={styles.banner}>
+          <Image
+            source={HOSPITAL_IMAGE}
+            style={styles.bannerImage}
+            resizeMode="cover"
+          />
+          <View style={styles.bannerTint} />
+
+          <View style={styles.bannerTop}>
+            <View style={styles.bannerIcon}>
+              <Feather name="calendar" size={26} color={COLORS.white} />
+            </View>
+
+            <View style={styles.bannerText}>
+              <Text style={styles.bannerTitle}>Need to see a doctor?</Text>
+              <Text style={styles.bannerDescription}>
+                Book a physical visit at a LASUTH clinic that suits you.
+              </Text>
+            </View>
           </View>
 
-          <Text style={styles.bannerTitle}>Need to see a doctor?</Text>
-
-          <Text style={styles.bannerDescription}>
-            Book a physical visit at a LASUTH clinic that suits you.
-          </Text>
-
           <Pressable
-            style={styles.bookButton}
-            onPress={() => router.push("/appointments/book")}
+            style={({ pressed }) => [
+              styles.bookButton,
+              pressed && styles.buttonPressed,
+            ]}
+            onPress={bookAppointment}
           >
-            <Feather name="plus" size={19} color={COLORS.white} />
             <Text style={styles.bookButtonText}>Book Appointment</Text>
+            <Feather name="arrow-right" size={18} color={COLORS.white} />
           </Pressable>
         </View>
 
-        {/* Appointment filters */}
-        <View style={styles.filterContainer}>
-          {["Upcoming", "Past"].map((filter) => {
-            const selected = activeFilter === filter;
+        {/* Tabs */}
+        <View style={styles.tabs}>
+          {[
+            { key: "upcoming", label: "Upcoming" },
+            { key: "past", label: "Past" },
+          ].map((item) => {
+            const active = tab === item.key;
 
             return (
               <Pressable
-                key={filter}
-                onPress={() => setActiveFilter(filter)}
-                style={[styles.filterButton, selected && styles.selectedFilter]}
+                key={item.key}
+                style={[styles.tab, active && styles.tabActive]}
+                onPress={() => setTab(item.key)}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: active }}
               >
-                <Text
-                  style={[
-                    styles.filterText,
-                    selected && styles.selectedFilterText,
-                  ]}
-                >
-                  {filter}
+                <Text style={[styles.tabText, active && styles.tabTextActive]}>
+                  {item.label}
                 </Text>
               </Pressable>
             );
           })}
         </View>
 
-        <SectionHeading
-          title={
-            activeFilter === "Upcoming" ? "Upcoming visits" : "Past visits"
-          }
-        />
-
-        {filteredAppointments.length > 0 ? (
-          filteredAppointments.map((appointment) => (
-            <AppointmentCard
-              key={appointment.id}
-              appointment={appointment}
-              onView={() => router.push(`/appointments/${appointment.id}`)}
-              onReschedule={handleReschedule}
-              onCancel={handleCancel}
-            />
-          ))
-        ) : (
-          <View style={styles.emptyCard}>
-            <View style={styles.emptyIcon}>
-              <Feather name="calendar" size={29} color={COLORS.green} />
-            </View>
-
-            <Text style={styles.emptyTitle}>
-              {activeFilter === "Upcoming"
-                ? "No upcoming appointments"
-                : "No past appointments"}
-            </Text>
-
-            <Text style={styles.emptyDescription}>
-              {activeFilter === "Upcoming"
-                ? "When you book a hospital visit, your appointment details will appear here."
-                : "Your completed and previous visits will appear here."}
-            </Text>
-
-            {activeFilter === "Upcoming" && (
-              <Pressable
-                style={styles.emptyButton}
-                onPress={() => router.push("/appointments/book")}
-              >
-                <Text style={styles.emptyButtonText}>Book a visit</Text>
-              </Pressable>
-            )}
-          </View>
-        )}
-
-        {/* Helpful reminder */}
-        <View style={styles.reminderCard}>
-          <View style={styles.reminderIcon}>
-            <Feather name="info" size={19} color={COLORS.gold} />
-          </View>
-
-          <View style={styles.reminderContent}>
-            <Text style={styles.reminderTitle}>Before your visit</Text>
-            <Text style={styles.reminderDescription}>
-              Arrive early and bring your LASUTH hospital number and any
-              relevant medical documents.
-            </Text>
-          </View>
+        {/* List */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>
+            {tab === "upcoming" ? "Upcoming Visits" : "Past Visits"}
+          </Text>
+          <CountBadge count={list.length} />
         </View>
 
-        <Text style={styles.footer}>LASUTH · Your health, our priority</Text>
+        {list.length > 0 ? (
+          list.map((item) => (
+            <AppointmentCard
+              key={item.id}
+              item={item}
+              onView={() => openDetails(item)}
+              onReschedule={() => reschedule(item)}
+              onCancel={() => handleCancel(item)}
+            />
+          ))
+        ) : tab === "upcoming" ? (
+          <EmptyState
+            icon="calendar"
+            title="No upcoming appointments"
+            message="Book a visit and it will show up here."
+          />
+        ) : (
+          <EmptyState
+            icon="calendar"
+            title="No past appointments"
+            message="Your completed and previous visits will appear here."
+          />
+        )}
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: {
+    flex: 1,
+  },
+
   safeArea: {
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  container: {
-    flex: 1,
+
+  scrollContent: {
+    paddingHorizontal: 24,
+    paddingTop: 12,
+    // Leaves room for the bottom tab bar.
+    paddingBottom: 110,
   },
-  content: {
-    paddingHorizontal: 20,
-    paddingTop: 18,
-    paddingBottom: 25,
-  },
+
+  // Header
   header: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 23,
+    gap: 14,
+    marginBottom: 20,
   },
-  pageEyebrow: {
-    fontFamily: "Inter_600SemiBold",
-    fontSize: 10,
-    letterSpacing: 1,
-    color: COLORS.green,
-    marginBottom: 6,
+
+  headerText: {
+    flex: 1,
   },
-  pageTitle: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 27,
-    color: COLORS.text,
+
+  title: {
+    fontFamily: "PlayfairDisplay_700Bold",
+    color: COLORS.navy,
+    fontSize: 24,
+    lineHeight: 30,
   },
-  pageSubtitle: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 13,
+
+  subtitle: {
+    fontFamily: "WorkSans_400Regular",
     color: COLORS.muted,
-    marginTop: 5,
+    fontSize: 12.5,
+    marginTop: 2,
   },
-  notificationButton: {
-    height: 46,
-    width: 46,
-    borderRadius: 23,
+
+  bell: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: COLORS.white,
     borderWidth: 1,
     borderColor: COLORS.border,
     alignItems: "center",
     justifyContent: "center",
   },
-  notificationDot: {
+
+  bellDot: {
     position: "absolute",
-    top: 9,
-    right: 10,
+    top: 11,
+    right: 12,
     width: 8,
     height: 8,
     borderRadius: 4,
     backgroundColor: COLORS.gold,
+    borderWidth: 1.5,
+    borderColor: COLORS.white,
   },
-  bookingBanner: {
-    backgroundColor: COLORS.greenSoft,
+
+  avatar: {
+    width: 44,
+    height: 44,
     borderRadius: 22,
-    padding: 20,
-    marginBottom: 25,
-  },
-  bannerIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    backgroundColor: COLORS.white,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 14,
-  },
-  bannerTitle: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 19,
-    color: COLORS.text,
-    marginBottom: 7,
-  },
-  bannerDescription: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 13,
-    lineHeight: 20,
-    color: COLORS.muted,
-    marginBottom: 18,
-  },
-  bookButton: {
-    minHeight: 48,
-    borderRadius: 14,
-    backgroundColor: COLORS.green,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 9,
-  },
-  bookButtonText: {
-    fontFamily: "Inter_600SemiBold",
-    fontSize: 14,
-    color: COLORS.white,
-  },
-  filterContainer: {
-    flexDirection: "row",
-    backgroundColor: "#E8EBE8",
-    padding: 4,
-    borderRadius: 16,
-    marginBottom: 24,
-  },
-  filterButton: {
-    flex: 1,
-    minHeight: 42,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 13,
-  },
-  selectedFilter: {
-    backgroundColor: COLORS.white,
-    elevation: 2,
-    shadowColor: "#000000",
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-  },
-  filterText: {
-    fontFamily: "Inter_500Medium",
-    color: COLORS.muted,
-    fontSize: 13,
-  },
-  selectedFilterText: {
-    fontFamily: "Inter_600SemiBold",
-    color: COLORS.green,
-  },
-  sectionHeading: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 14,
-  },
-  sectionTitle: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 18,
-    color: COLORS.text,
-  },
-  sectionAction: {
-    fontFamily: "Inter_600SemiBold",
-    fontSize: 12,
-    color: COLORS.green,
-  },
-  appointmentCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 20,
-    padding: 17,
-    marginBottom: 18,
+    backgroundColor: COLORS.primarySoft,
     borderWidth: 1,
     borderColor: COLORS.border,
-    shadowColor: "#000000",
-    shadowOpacity: 0.025,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 1,
-  },
-  cardTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 11,
-  },
-  clinicIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    backgroundColor: COLORS.greenSoft,
     alignItems: "center",
     justifyContent: "center",
   },
-  clinicInfo: {
-    flex: 1,
+
+  // Banner
+  banner: {
+    borderRadius: 18,
+    overflow: "hidden",
+    backgroundColor: COLORS.primarySoft,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 16,
+    marginBottom: 20,
   },
-  clinicName: {
-    fontFamily: "Inter_600SemiBold",
-    fontSize: 15,
-    lineHeight: 21,
-    color: COLORS.text,
+
+  bannerImage: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    width: "45%",
+    opacity: 0.35,
   },
-  doctorName: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 12,
-    color: COLORS.muted,
-    marginTop: 4,
+
+  bannerTint: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(233, 246, 239, 0.7)",
   },
-  statusRow: {
+
+  bannerTop: {
     flexDirection: "row",
     alignItems: "center",
-    flexWrap: "wrap",
-    gap: 8,
-    marginTop: 17,
+    gap: 14,
+    marginBottom: 16,
   },
-  statusBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: 20,
-    backgroundColor: COLORS.greenSoft,
-  },
-  statusText: {
-    fontFamily: "Inter_600SemiBold",
-    fontSize: 11,
-    color: COLORS.green,
-  },
-  typeBadge: {
-    backgroundColor: "#F3F4F6",
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: 20,
-  },
-  typeText: {
-    fontFamily: "Inter_500Medium",
-    fontSize: 10,
-    color: COLORS.muted,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: COLORS.border,
-    marginVertical: 17,
-  },
-  detailRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 11,
-    marginBottom: 15,
-  },
-  detailIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    backgroundColor: "#F6F8F6",
+
+  bannerIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: COLORS.primary,
     alignItems: "center",
     justifyContent: "center",
   },
-  detailInfo: {
+
+  bannerText: {
     flex: 1,
+    paddingRight: 40,
   },
-  detailLabel: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 11,
-    color: COLORS.muted,
-    marginBottom: 4,
+
+  bannerTitle: {
+    fontFamily: "WorkSans_700Bold",
+    color: COLORS.navy,
+    fontSize: 16,
   },
-  detailValue: {
-    fontFamily: "Inter_600SemiBold",
-    fontSize: 13,
+
+  bannerDescription: {
+    fontFamily: "WorkSans_400Regular",
     color: COLORS.text,
+    fontSize: 12.5,
+    lineHeight: 18,
+    marginTop: 3,
   },
-  viewButton: {
-    minHeight: 47,
-    backgroundColor: COLORS.green,
+
+  bookButton: {
+    minHeight: 48,
+    backgroundColor: COLORS.primary,
     borderRadius: 13,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 10,
-    marginTop: 3,
+    marginRight: "26%",
   },
-  viewButtonText: {
-    fontFamily: "Inter_600SemiBold",
+
+  bookButtonText: {
+    fontFamily: "WorkSans_700Bold",
     color: COLORS.white,
-    fontSize: 13,
+    fontSize: 14,
   },
-  secondaryActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-around",
-    marginTop: 17,
+
+  buttonPressed: {
+    opacity: 0.82,
   },
-  secondaryAction: {
+
+  // Tabs
+  tabs: {
     flexDirection: "row",
+    backgroundColor: "#EDF1EE",
+    borderRadius: 999,
+    padding: 3,
+    marginBottom: 22,
+  },
+
+  tab: {
+    flex: 1,
+    minHeight: 42,
+    borderRadius: 999,
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
-    flex: 1,
-    paddingVertical: 5,
   },
-  secondaryActionText: {
-    fontFamily: "Inter_500Medium",
-    fontSize: 11,
-    color: COLORS.green,
+
+  tabActive: {
+    backgroundColor: COLORS.primary,
   },
-  cancelText: {
-    fontFamily: "Inter_500Medium",
-    fontSize: 11,
-    color: "#B42318",
+
+  tabText: {
+    fontFamily: "WorkSans_600SemiBold",
+    color: COLORS.text,
+    fontSize: 13.5,
   },
-  actionDivider: {
-    height: 22,
-    width: 1,
-    backgroundColor: COLORS.border,
+
+  tabTextActive: {
+    color: COLORS.white,
   },
-  emptyCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 20,
-    padding: 26,
+
+  // Section header
+  sectionHeader: {
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+
+  sectionTitle: {
+    fontFamily: "WorkSans_700Bold",
+    color: COLORS.navy,
+    fontSize: 17,
+  },
+
+  countBadge: {
+    minWidth: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "#EDF1EE",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 8,
+  },
+
+  countText: {
+    fontFamily: "WorkSans_600SemiBold",
+    color: COLORS.text,
+    fontSize: 12.5,
+  },
+
+  // Appointment card
+  card: {
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
+    padding: 14,
+    marginBottom: 14,
   },
-  emptyIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: COLORS.greenSoft,
+
+  cardTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+
+  cardIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: COLORS.primarySoft,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 15,
   },
-  emptyTitle: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 16,
-    color: COLORS.text,
-    textAlign: "center",
-    marginBottom: 8,
+
+  cardBody: {
+    flex: 1,
+    gap: 5,
   },
-  emptyDescription: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 13,
-    color: COLORS.muted,
-    lineHeight: 20,
-    textAlign: "center",
-  },
-  emptyButton: {
-    marginTop: 18,
-    backgroundColor: COLORS.green,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
-  },
-  emptyButtonText: {
-    fontFamily: "Inter_600SemiBold",
-    color: COLORS.white,
-    fontSize: 13,
-  },
-  reminderCard: {
+
+  cardTitleRow: {
     flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 12,
-    backgroundColor: COLORS.goldSoft,
-    borderRadius: 16,
-    padding: 15,
-    marginTop: 6,
-    marginBottom: 20,
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
   },
-  reminderIcon: {
+
+  cardTitle: {
+    flex: 1,
+    fontFamily: "WorkSans_700Bold",
+    color: COLORS.navy,
+    fontSize: 14.5,
+  },
+
+  statusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: COLORS.primarySoft,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+
+  statusText: {
+    fontFamily: "WorkSans_600SemiBold",
+    color: COLORS.primary,
+    fontSize: 11,
+  },
+
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+  },
+
+  metaText: {
+    fontFamily: "WorkSans_400Regular",
+    color: COLORS.muted,
+    fontSize: 12.5,
+  },
+
+  typeTag: {
+    alignSelf: "flex-start",
+    backgroundColor: "#EDF1EE",
+    borderRadius: 999,
+    paddingHorizontal: 11,
+    paddingVertical: 4,
     marginTop: 2,
   },
-  reminderContent: {
-    flex: 1,
-  },
-  reminderTitle: {
-    fontFamily: "Inter_600SemiBold",
-    color: COLORS.text,
-    fontSize: 13,
-    marginBottom: 6,
-  },
-  reminderDescription: {
-    fontFamily: "Inter_400Regular",
-    color: COLORS.muted,
-    fontSize: 12,
-    lineHeight: 19,
-  },
-  footer: {
-    fontFamily: "Inter_400Regular",
-    textAlign: "center",
+
+  typeTagText: {
+    fontFamily: "WorkSans_500Medium",
     color: COLORS.muted,
     fontSize: 11,
-    marginBottom: 8,
+  },
+
+  actions: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    marginTop: 14,
+    paddingTop: 12,
+  },
+
+  actionButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+    paddingVertical: 4,
+  },
+
+  actionText: {
+    fontFamily: "WorkSans_600SemiBold",
+    color: COLORS.primary,
+    fontSize: 12.5,
+  },
+
+  actionDivider: {
+    width: 1,
+    height: 22,
+    backgroundColor: COLORS.border,
+  },
+
+  // Empty state
+  emptyCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: "center",
+    paddingVertical: 30,
+    paddingHorizontal: 24,
+  },
+
+  emptyIcon: {
+    width: 62,
+    height: 62,
+    borderRadius: 31,
+    backgroundColor: COLORS.primarySoft,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 14,
+  },
+
+  emptyTitle: {
+    fontFamily: "WorkSans_700Bold",
+    color: COLORS.navy,
+    fontSize: 15,
+  },
+
+  emptyMessage: {
+    fontFamily: "WorkSans_400Regular",
+    color: COLORS.muted,
+    fontSize: 12.5,
+    lineHeight: 19,
+    textAlign: "center",
+    marginTop: 5,
   },
 });

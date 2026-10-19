@@ -1,62 +1,153 @@
-# Welcome to your Expo app 👋
+## 📁 Project Structure
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+The LASUTH Patient Care platform is organized into four main areas:
 
-## Get started
+- **Mobile App:** Patient-facing mobile application.
+- **Frontend:** Web application interface.
+- **Backend:** API, authentication, business logic, and data management.
+- **Admin:** Administrative dashboard for managing platform operations.
 
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```text
+LASUTH-Patient-App/
+│
+├── mobile/                         # Patient mobile application
+│   ├── app/
+│   │   ├── (tabs)/
+│   │   │   ├── _layout.jsx
+│   │   │   ├── index.jsx
+│   │   │   ├── appointments.jsx
+│   │   │   ├── consultations.jsx
+│   │   │   ├── prescriptions.jsx
+│   │   │   └── profile.jsx
+│   │   ├── _layout.jsx
+│   │   ├── sign-in.jsx
+│   │   ├── sign-up.jsx
+│   │   ├── forgot-password.jsx
+│   │   ├── terms.jsx
+│   │   └── privacy-policy.jsx
+│   │
+│   ├── assets/
+│   │   └── images/
+│   │       ├── logo.png
+│   │       └── ayinke.png
+│   │
+│   ├── components/
+│   │   └── CurvedTabBar.jsx
+│   ├── context/
+│   │   └── AuthContext.jsx
+│   ├── constants/
+│   ├── hooks/
+│   ├── services/
+│   ├── app.json
+│   ├── eas.json
+│   └── package.json
+│
+├── frontend/                       # Web application
+│   ├── public/                     # Static assets
+│   ├── src/
+│   │   ├── assets/                 # Images, icons, fonts
+│   │   ├── components/             # Reusable UI components
+│   │   ├── pages/                  # Application pages
+│   │   ├── layouts/                # Shared page layouts
+│   │   ├── routes/                 # Route definitions
+│   │   ├── services/               # API communication
+│   │   ├── hooks/                  # Custom hooks
+│   │   ├── context/                # Shared application state
+│   │   ├── utils/                  # Helper functions
+│   │   └── styles/                 # Global and component styles
+│   ├── .env.example
+│   └── package.json
+│
+├── backend/                        # Backend API
+│   ├── src/
+│   │   ├── config/                 # Environment and service config
+│   │   ├── controllers/            # Request handlers
+│   │   ├── middleware/             # Authentication and validation
+│   │   ├── models/                 # Data models
+│   │   ├── routes/                 # API route definitions
+│   │   ├── services/               # Business logic
+│   │   ├── utils/                  # Shared utilities
+│   │   ├── validators/             # Input validation
+│   │   └── server.js               # API entry point
+│   ├── tests/                      # Automated tests
+│   ├── .env.example
+│   └── package.json
+│
+├── admin/                          # Admin dashboard
+│   ├── public/
+│   ├── src/
+│   │   ├── assets/
+│   │   ├── components/
+│   │   ├── layouts/
+│   │   ├── pages/
+│   │   ├── routes/
+│   │   ├── services/
+│   │   ├── context/
+│   │   ├── hooks/
+│   │   └── utils/
+│   ├── .env.example
+│   └── package.json
+│
+├── .gitignore
+├── README.md
+└── package.json                    # Optional workspace root
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## 🧩 Component Responsibilities
 
-### Other setup steps
+### Mobile App
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+The patient-facing application provides account registration and sign-in, appointment booking, online consultations, prescription access, and patient profile management.
 
-## Learn more
+### Frontend
 
-To learn more about developing your project with Expo, look at the following resources:
+The web interface provides browser-based access to the platform's supported features. It communicates with the backend API for data and application operations.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### Backend
 
-## Join the community
+The backend exposes API endpoints, handles authentication and authorization, validates requests, applies business rules, and communicates with the database and other integrated services.
 
-Join our community of developers creating universal apps.
+### Admin Dashboard
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+The admin interface provides authorized personnel with administrative tools for managing supported platform operations. Access should be protected by role-based authorization enforced by the backend.
 
-# PatientCare
+## 🛠️ Technology Stack
 
-- `mobileDev/` – Expo (React Native) mobile app
-- `frontend/` – web frontend
-- `backend/` – API
+| Layer           | Technology                               |
+| --------------- | ---------------------------------------- |
+| Mobile          | React Native, Expo, Expo Router          |
+| Web frontend    | Confirm against the actual project       |
+| Admin dashboard | Confirm against the actual project       |
+| Backend         | Confirm against the actual project       |
+| Database        | Confirm against the actual configuration |
+| Version control | Git and GitHub                           |
+
+## 🔐 Environment Configuration
+
+Each application should use its own environment configuration where appropriate.
+
+- Keep actual secrets and credentials out of version control.
+- Provide `.env.example` files containing variable names and safe placeholder values.
+- Configure API base URLs separately for local development, testing, and production.
+- Enforce authentication and authorization on the backend, including administrative access.
+
+## 🚀 Getting Started
+
+Each application may have its own installation and startup commands. Consult the relevant `package.json` and project configuration before running commands.
+
+```bash
+# Navigate to the required application
+cd backend
+
+# Install its dependencies
+npm install
+
+# Run the script defined in package.json
+npm run dev
+```
+
+Repeat with the appropriate directory and available scripts for the mobile app, frontend, and admin dashboard.
+
+```
+
+```
