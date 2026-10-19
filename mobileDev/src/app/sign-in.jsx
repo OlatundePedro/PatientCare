@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
   },
 
   brandDivider: {
-    width: 3,
+    width: 2,
     height: 70,
     backgroundColor: COLORS.primaryDark,
     marginHorizontal: 12,
