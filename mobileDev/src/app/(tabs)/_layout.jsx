@@ -1,6 +1,6 @@
 import { Redirect, Tabs } from "expo-router";
 import CurvedTabBar from "../../../components/CurvedTabBar";
-import { useAuth } from "../../../context/AuthContext";
+import { useAuth } from "../../../context/authContext";
 
 export default function TabsLayout() {
   const { isSignedIn } = useAuth();

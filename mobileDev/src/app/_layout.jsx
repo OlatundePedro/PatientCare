@@ -10,7 +10,7 @@ import { Stack } from "expo-router";
 import { useCallback, useState } from "react";
 import { View } from "react-native";
 import AnimatedSplash from "../../components/AnimatedSplash";
-import { AuthProvider } from "../../context/AuthContext";
+import { AuthProvider } from "../../context/authContext";
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({

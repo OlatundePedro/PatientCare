@@ -26,7 +26,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import IdentifierToggle from "../../components/IdentifierToggle";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../context/authContext";
 
 const COLORS = {
   primary: "#0B6B43",

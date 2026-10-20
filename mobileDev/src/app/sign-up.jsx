@@ -11,336 +11,32 @@ import { router } from "expo-router";
 import { useState } from "react";
 import {
   Alert,
-  FlatList,
   Image,
   KeyboardAvoidingView,
-  Modal,
   Platform,
   Pressable,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { InputField, PasswordStrength } from "../../components/AuthFields";
+import { BackButton, StepProgress } from "../../components/AuthParts";
 import IdentifierToggle from "../../components/IdentifierToggle";
-
-const COLORS = {
-  primary: "#0B6B43",
-  primaryDark: "#075536",
-  primarySoft: "#E9F6EF",
-  navy: "#0F1F33",
-  text: "#1F2937",
-  muted: "#64748B",
-  white: "#FFFFFF",
-  background: "#F8FAF8",
-  border: "#DCE7E1",
-  error: "#DC2626",
-};
+import { COLORS } from "../../components/authColors";
+import {
+  getPasswordStrength,
+  isValidNigerianPhone,
+  toE164,
+} from "../../components/signupHelpers";
+import { signUpStore } from "../../components/signupStore";
 
 const LASUTH_LOGO = require("../../assets/images/logo.png");
 const HOSPITAL_IMAGE = require("../../assets/images/ayinke.png");
 
-// ---------- Password strength ----------
-
-const STRENGTH_LEVELS = [
-  { label: "Very weak", color: "#DC2626" },
-  { label: "Weak", color: "#F97316" },
-  { label: "Fair", color: "#EAB308" },
-  { label: "Good", color: "#84CC16" },
-  { label: "Strong", color: "#16A34A" },
-];
-
-function getPasswordStrength(password) {
-  const checks = {
-    length: password.length >= 8,
-    long: password.length >= 12,
-    case: /[a-z]/.test(password) && /[A-Z]/.test(password),
-    number: /\d/.test(password),
-    symbol: /[^A-Za-z0-9]/.test(password),
-  };
-
-  let score = Object.values(checks).filter(Boolean).length;
-
-  // A password shorter than 8 characters can never rate above "Weak"
-  if (!checks.length) score = Math.min(score, 2);
-
-  const level = password ? Math.max(score, 1) : 0;
-
-  return { level, checks };
-}
-
-const REQUIREMENTS = [
-  { key: "length", label: "At least 8 characters" },
-  { key: "case", label: "Upper and lowercase letters" },
-  { key: "number", label: "At least one number" },
-  { key: "symbol", label: "At least one symbol (e.g. ! @ # $)" },
-  { key: "long", label: "12 or more characters (extra strong)" },
-];
-
-function PasswordStrength({ password }) {
-  if (!password) return null;
-
-  const { level, checks } = getPasswordStrength(password);
-  const current = STRENGTH_LEVELS[level - 1];
-
-  return (
-    <View style={styles.strengthContainer}>
-      <View style={styles.strengthHeader}>
-        <Text style={styles.strengthTitle}>Password strength</Text>
-        <Text style={[styles.strengthLabel, { color: current.color }]}>
-          {current.label}
-        </Text>
-      </View>
-
-      <View style={styles.strengthBar}>
-        {STRENGTH_LEVELS.map((item, index) => (
-          <View
-            key={item.label}
-            style={[
-              styles.strengthSegment,
-              {
-                backgroundColor: index < level ? current.color : COLORS.border,
-              },
-            ]}
-          />
-        ))}
-      </View>
-
-      <View style={styles.requirements}>
-        {REQUIREMENTS.map((item) => {
-          const met = checks[item.key];
-
-          return (
-            <View key={item.key} style={styles.requirementRow}>
-              <Feather
-                name={met ? "check-circle" : "circle"}
-                size={14}
-                color={met ? "#16A34A" : COLORS.muted}
-              />
-              <Text
-                style={[
-                  styles.requirementText,
-                  met && styles.requirementTextMet,
-                ]}
-              >
-                {item.label}
-              </Text>
-            </View>
-          );
-        })}
-      </View>
-    </View>
-  );
-}
-
-// ---------- Input field ----------
-// Defined outside the screen so the keyboard stays open while typing.
-
-function InputField({
-  icon,
-  placeholder,
-  value,
-  onChangeText,
-  keyboardType = "default",
-  autoCapitalize = "none",
-  secureTextEntry = false,
-  rightAction,
-  maxLength,
-  autoComplete,
-}) {
-  return (
-    <View style={styles.inputContainer}>
-      <Feather name={icon} size={20} color={COLORS.primary} />
-
-      <TextInput
-        style={styles.input}
-        placeholder={placeholder}
-        placeholderTextColor="#8A9BAF"
-        value={value}
-        onChangeText={onChangeText}
-        keyboardType={keyboardType}
-        autoCapitalize={autoCapitalize}
-        autoCorrect={false}
-        secureTextEntry={secureTextEntry}
-        maxLength={maxLength}
-        autoComplete={autoComplete}
-      />
-
-      {rightAction}
-    </View>
-  );
-}
-
-// ---------- Date of birth helpers ----------
-
-// Turns whatever is typed into DD/MM/YYYY as the user types.
-function formatDob(text) {
-  const digits = text.replace(/\D/g, "").slice(0, 8);
-
-  if (digits.length > 4) {
-    return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
-  }
-
-  if (digits.length > 2) {
-    return `${digits.slice(0, 2)}/${digits.slice(2)}`;
-  }
-
-  return digits;
-}
-
-// Returns a Date for a real calendar date in DD/MM/YYYY, otherwise null.
-function parseDob(value) {
-  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value);
-  if (!match) return null;
-
-  const day = Number(match[1]);
-  const month = Number(match[2]);
-  const year = Number(match[3]);
-  const date = new Date(year, month - 1, day);
-
-  if (
-    date.getFullYear() !== year ||
-    date.getMonth() !== month - 1 ||
-    date.getDate() !== day
-  ) {
-    return null;
-  }
-
-  return date;
-}
-
-// ---------- State of origin ----------
-
-const NIGERIAN_STATES = [
-  "Abia",
-  "Adamawa",
-  "Akwa Ibom",
-  "Anambra",
-  "Bauchi",
-  "Bayelsa",
-  "Benue",
-  "Borno",
-  "Cross River",
-  "Delta",
-  "Ebonyi",
-  "Edo",
-  "Ekiti",
-  "Enugu",
-  "FCT (Abuja)",
-  "Gombe",
-  "Imo",
-  "Jigawa",
-  "Kaduna",
-  "Kano",
-  "Katsina",
-  "Kebbi",
-  "Kogi",
-  "Kwara",
-  "Lagos",
-  "Nasarawa",
-  "Niger",
-  "Ogun",
-  "Ondo",
-  "Osun",
-  "Oyo",
-  "Plateau",
-  "Rivers",
-  "Sokoto",
-  "Taraba",
-  "Yobe",
-  "Zamfara",
-];
-
-// Defined outside the screen so it keeps its state while the form re-renders.
-function StateSelect({ value, onChange }) {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <>
-      <Pressable
-        style={styles.inputContainer}
-        onPress={() => setOpen(true)}
-        accessibilityRole="button"
-        accessibilityLabel="Select state of origin"
-      >
-        <Feather name="map-pin" size={20} color={COLORS.primary} />
-
-        <Text
-          style={[styles.selectText, !value && styles.selectPlaceholder]}
-          numberOfLines={1}
-        >
-          {value || "Select your state of origin"}
-        </Text>
-
-        <Feather name="chevron-down" size={20} color={COLORS.muted} />
-      </Pressable>
-
-      <Modal
-        visible={open}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setOpen(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <Pressable
-            style={styles.modalBackdrop}
-            onPress={() => setOpen(false)}
-          />
-
-          <View style={styles.modalSheet}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>State of origin</Text>
-
-              <Pressable
-                onPress={() => setOpen(false)}
-                hitSlop={10}
-                accessibilityLabel="Close"
-              >
-                <Feather name="x" size={22} color={COLORS.navy} />
-              </Pressable>
-            </View>
-
-            <FlatList
-              data={NIGERIAN_STATES}
-              keyExtractor={(item) => item}
-              showsVerticalScrollIndicator={false}
-              renderItem={({ item }) => {
-                const selected = item === value;
-
-                return (
-                  <Pressable
-                    style={styles.stateRow}
-                    onPress={() => {
-                      onChange(item);
-                      setOpen(false);
-                    }}
-                  >
-                    <Text
-                      style={[
-                        styles.stateText,
-                        selected && styles.stateTextSelected,
-                      ]}
-                    >
-                      {item}
-                    </Text>
-
-                    {selected && (
-                      <Feather name="check" size={18} color={COLORS.primary} />
-                    )}
-                  </Pressable>
-                );
-              }}
-            />
-          </View>
-        </View>
-      </Modal>
-    </>
-  );
-}
-
+// Step 1 of 2: create the account (email or phone + password)
 export default function SignUpScreen() {
   const [fontsLoaded] = useFonts({
     WorkSans_400Regular,
@@ -350,10 +46,6 @@ export default function SignUpScreen() {
     PlayfairDisplay_700Bold,
   });
 
-  const [fullName, setFullName] = useState("");
-  const [dob, setDob] = useState("");
-  const [stateOfOrigin, setStateOfOrigin] = useState("");
-  const [patientId, setPatientId] = useState("");
   const [method, setMethod] = useState("email"); // "email" | "phone"
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -370,68 +62,18 @@ export default function SignUpScreen() {
   const passwordsDiffer =
     confirmPassword.length > 0 && password !== confirmPassword;
 
-  const handleRegistration = () => {
-    if (fullName.trim().split(/\s+/).filter(Boolean).length < 2) {
-      Alert.alert(
-        "Full name required",
-        "Please enter your full name with your surname first, for example Adeyemi Folake.",
-      );
-      return;
-    }
-
-    const birthDate = parseDob(dob);
-
-    if (!birthDate) {
-      Alert.alert(
-        "Invalid date of birth",
-        "Please enter a valid date in the format DD/MM/YYYY.",
-      );
-      return;
-    }
-
-    if (birthDate > new Date() || birthDate.getFullYear() < 1900) {
-      Alert.alert(
-        "Invalid date of birth",
-        "Please check your date of birth and try again.",
-      );
-      return;
-    }
-
-    if (!stateOfOrigin) {
-      Alert.alert(
-        "State of origin required",
-        "Please select your state of origin.",
-      );
-      return;
-    }
-
-    // Patient ID is optional: only validate it when something was entered.
-    if (
-      patientId.trim().length > 0 &&
-      !/^[A-Za-z0-9/-]{4,20}$/.test(patientId.trim())
-    ) {
-      Alert.alert(
-        "Invalid Patient ID",
-        "Enter your Patient ID exactly as it appears on your LASUTH hospital card (4 to 20 letters, numbers, / or -), or leave it blank.",
-      );
-      return;
-    }
-
+  const handleContinue = () => {
     if (method === "email") {
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
         Alert.alert("Invalid email", "Please enter a valid email address.");
         return;
       }
-    } else {
-      const cleanedPhone = phone.replace(/[\s()-]/g, "");
-
-      if (!/^(?:\+234|234|0)[789][01]\d{8}$/.test(cleanedPhone)) {
-        Alert.alert(
-          "Invalid phone number",
-          "Please enter a valid Nigerian phone number, for example 0803 123 4567.",
-        );
-        return;
-      }
+    } else if (!isValidNigerianPhone(phone)) {
+      Alert.alert(
+        "Invalid phone number",
+        "Please enter a valid Nigerian phone number, for example 0803 123 4567.",
+      );
+      return;
     }
 
     const { level, checks } = getPasswordStrength(password);
@@ -468,16 +110,16 @@ export default function SignUpScreen() {
       return;
     }
 
-    // TODO: send fullName (surname first), dob (DD/MM/YYYY), stateOfOrigin,
-    // patientId (may be empty), the email or phone number, and the password
-    // to the LASUTH registration API here.
-    Alert.alert(
-      "Account created",
-      `You can now sign in with your ${
-        method === "email" ? "email address" : "phone number"
-      }.`,
-      [{ text: "Sign In", onPress: () => router.replace("/sign-in") }],
-    );
+    signUpStore.set({
+      method,
+      email: email.trim(),
+      phone: method === "phone" ? toE164(phone) : "",
+      password,
+    });
+
+    // TODO: call the LASUTH API here to create the account and send the
+    // 6-digit verification code to the email address or phone number.
+    router.push("/verify-otp");
   };
 
   return (
@@ -495,13 +137,7 @@ export default function SignUpScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.topBar}>
-            <Pressable
-              style={styles.backButton}
-              onPress={() => router.back()}
-              accessibilityLabel="Go back"
-            >
-              <Feather name="arrow-left" size={18} color={COLORS.navy} />
-            </Pressable>
+            <BackButton />
 
             <View style={styles.brandRow}>
               <Image
@@ -519,6 +155,8 @@ export default function SignUpScreen() {
               </View>
             </View>
           </View>
+
+          <StepProgress step={1} />
 
           <View style={styles.imageContainer}>
             <Image
@@ -542,43 +180,6 @@ export default function SignUpScreen() {
               your prescriptions in one place.
             </Text>
           </View>
-
-          <Text style={styles.fieldLabel}>Full Name (surname first)</Text>
-          <InputField
-            icon="user"
-            placeholder="Surname first, e.g. Adeyemi Folake"
-            value={fullName}
-            onChangeText={setFullName}
-            autoCapitalize="words"
-            autoComplete="name"
-          />
-
-          <Text style={styles.fieldLabel}>Date of Birth</Text>
-          <InputField
-            icon="calendar"
-            placeholder="DD/MM/YYYY"
-            value={dob}
-            onChangeText={(text) => setDob(formatDob(text))}
-            keyboardType="number-pad"
-            maxLength={10}
-          />
-
-          <Text style={styles.fieldLabel}>State of Origin</Text>
-          <StateSelect value={stateOfOrigin} onChange={setStateOfOrigin} />
-
-          <Text style={styles.fieldLabel}>Patient ID (optional)</Text>
-          <InputField
-            icon="credit-card"
-            placeholder="Hospital number (optional)"
-            value={patientId}
-            onChangeText={setPatientId}
-            autoCapitalize="characters"
-            maxLength={20}
-          />
-          <Text style={styles.fieldHint}>
-            If you already have a LASUTH hospital card, you can enter your
-            Patient ID (hospital number) from it or from your appointment slip.
-          </Text>
 
           <Text style={styles.fieldLabel}>Sign up with</Text>
           <IdentifierToggle value={method} onChange={setMethod} />
@@ -707,9 +308,9 @@ export default function SignUpScreen() {
               styles.createButton,
               pressed && styles.buttonPressed,
             ]}
-            onPress={handleRegistration}
+            onPress={handleContinue}
           >
-            <Text style={styles.createButtonText}>Create Account</Text>
+            <Text style={styles.createButtonText}>Continue</Text>
             <Feather name="arrow-right" size={21} color={COLORS.white} />
           </Pressable>
 
@@ -755,17 +356,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: 18,
-  },
-
-  backButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: COLORS.white,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    alignItems: "center",
-    justifyContent: "center",
   },
 
   brandRow: {
@@ -862,156 +452,6 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     fontSize: 13,
     marginBottom: 7,
-  },
-
-  fieldHint: {
-    fontFamily: "WorkSans_400Regular",
-    color: COLORS.muted,
-    fontSize: 11,
-    lineHeight: 16,
-    marginTop: -7,
-    marginBottom: 16,
-  },
-
-  inputContainer: {
-    minHeight: 56,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    backgroundColor: COLORS.white,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 13,
-    paddingHorizontal: 15,
-    marginBottom: 15,
-  },
-
-  input: {
-    flex: 1,
-    minWidth: 0,
-    color: COLORS.text,
-    fontFamily: "WorkSans_400Regular",
-    fontSize: 13,
-    paddingVertical: 13,
-  },
-
-  selectText: {
-    flex: 1,
-    color: COLORS.text,
-    fontFamily: "WorkSans_400Regular",
-    fontSize: 13,
-  },
-
-  selectPlaceholder: {
-    color: "#8A9BAF",
-  },
-
-  modalOverlay: {
-    flex: 1,
-    justifyContent: "flex-end",
-  },
-
-  modalBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(15, 31, 51, 0.45)",
-  },
-
-  modalSheet: {
-    maxHeight: "70%",
-    backgroundColor: COLORS.white,
-    borderTopLeftRadius: 22,
-    borderTopRightRadius: 22,
-    paddingHorizontal: 24,
-    paddingTop: 20,
-    paddingBottom: 30,
-  },
-
-  modalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 8,
-  },
-
-  modalTitle: {
-    fontFamily: "WorkSans_700Bold",
-    color: COLORS.navy,
-    fontSize: 17,
-  },
-
-  stateRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-
-  stateText: {
-    fontFamily: "WorkSans_400Regular",
-    color: COLORS.text,
-    fontSize: 14,
-  },
-
-  stateTextSelected: {
-    fontFamily: "WorkSans_600SemiBold",
-    color: COLORS.primary,
-  },
-
-  strengthContainer: {
-    marginTop: -5,
-    marginBottom: 17,
-  },
-
-  strengthHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 7,
-  },
-
-  strengthTitle: {
-    fontFamily: "WorkSans_500Medium",
-    color: COLORS.muted,
-    fontSize: 11.5,
-  },
-
-  strengthLabel: {
-    fontFamily: "WorkSans_700Bold",
-    fontSize: 12,
-  },
-
-  strengthBar: {
-    flexDirection: "row",
-    gap: 5,
-  },
-
-  strengthSegment: {
-    flex: 1,
-    height: 6,
-    borderRadius: 3,
-  },
-
-  requirements: {
-    marginTop: 11,
-    gap: 6,
-  },
-
-  requirementRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-
-  requirementText: {
-    fontFamily: "WorkSans_400Regular",
-    color: COLORS.muted,
-    fontSize: 11.5,
-  },
-
-  requirementTextMet: {
-    color: COLORS.text,
   },
 
   matchText: {
